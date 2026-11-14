@@ -1,0 +1,5 @@
+# Files the runner writes while it works
+*.log
+*.undo-*.json
+.runner-backups/
+__pycache__/

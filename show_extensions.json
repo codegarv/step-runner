@@ -1,0 +1,11 @@
+{
+  "title": "Show file extensions in File Explorer",
+  "steps": [
+    {
+      "description": "Tell File Explorer to stop hiding file extensions (your user account only). Reopen Explorer windows to see it.",
+      "command": "reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v HideFileExt /t REG_DWORD /d 0 /f",
+      "undo": "reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v HideFileExt /t REG_DWORD /d 1 /f",
+      "admin": false
+    }
+  ]
+}
