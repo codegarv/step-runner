@@ -1,0 +1,11 @@
+{
+  "title": "Admin test: create an empty folder in Program Files",
+  "steps": [
+    {
+      "description": "Create an empty folder named step-runner-admin-test inside C:\\Program Files. Writing there needs admin rights, so Windows will show a UAC prompt. Nothing else on the PC changes.",
+      "command": "New-Item -ItemType Directory -Path \"C:\\Program Files\\step-runner-admin-test\" | Out-Null",
+      "undo": "Remove-Item -Recurse -Force \"C:\\Program Files\\step-runner-admin-test\"",
+      "admin": true
+    }
+  ]
+}

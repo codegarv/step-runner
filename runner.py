@@ -109,17 +109,22 @@ def execute(step, out=None):
 
 def run_elevated(step, verb="runas"):
     """Run one step in a separate admin process and return its exit code. Output is shown afterwards."""
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         job, out = os.path.join(d, "job.json"), os.path.join(d, "out.txt")
         with open(job, "w", encoding="utf-8") as f:
             json.dump({"step": step, "out": out, "cwd": os.getcwd()}, f)
+        # Create the output file here so it stays ours: on Windows a file the admin process creates in a
+        # Python temp folder belongs to Administrators, and this non-admin process can't read it back.
+        open(out, "w").close()
         helper = [sys.executable, os.path.abspath(__file__), "--elevated-step", job]
         if os.name != "nt":
             code = subprocess.run(["sudo"] + helper).returncode  # sudo asks for your password in this terminal
         else:
             code = shell_execute_wait(verb, helper)
-        if os.path.exists(out):
+        try:
             print(open(out, encoding="utf-8", errors="replace").read(), end="")
+        except OSError as e:  # the step already ran; never let reading its output skip the log and undo file
+            print(f"  (Couldn't show the step's output: {e})")
         return code
 
 
@@ -152,7 +157,7 @@ def elevated_step(job_path):
     with open(job_path, encoding="utf-8") as f:
         job = json.load(f)
     os.chdir(job["cwd"])
-    with open(job["out"], "w", encoding="utf-8") as out:
+    with open(job["out"], "r+", encoding="utf-8") as out:  # r+: write into the caller's file, never replace it
         code = execute(job["step"], out)
     sys.exit(code)
 

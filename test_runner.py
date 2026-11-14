@@ -113,6 +113,27 @@ with tempfile.TemporaryDirectory() as d:
         assert runner.run_elevated({"command": touch(p, sh), "shell": sh}, verb="open") == 0
         assert os.path.exists(p), "separate process must run the command"
         assert runner.run_elevated({"command": exit_code(4, sh), "shell": sh}, verb="open") == 4
+
+        # The admin process must find the output file already there (made by us, so we can read it back),
+        # and an unreadable output file must not crash the runner after the step ran.
+        real_wait = runner.shell_execute_wait
+
+        def check_out_exists(verb, argv):
+            out = json.load(open(argv[-1], encoding="utf-8"))["out"]
+            assert os.path.exists(out), "output file must exist before the admin process starts"
+            return real_wait(verb, argv)
+
+        def lose_output(verb, argv):
+            os.remove(json.load(open(argv[-1], encoding="utf-8"))["out"])
+            return 0
+
+        try:
+            runner.shell_execute_wait = check_out_exists
+            assert runner.run_elevated({"command": exit_code(0, sh), "shell": sh}, verb="open") == 0
+            runner.shell_execute_wait = lose_output
+            assert runner.run_elevated({"command": "x", "shell": sh}) == 0, "missing output must not crash"
+        finally:
+            runner.shell_execute_wait = real_wait
         print("ok: admin process plumbing (UAC prompt itself not tested)")
     elif subprocess.run(["sudo", "-n", "true"], capture_output=True).returncode == 0:
         assert runner.run_elevated({"command": touch(p, sh), "shell": sh}) == 0 and os.path.exists(p)
