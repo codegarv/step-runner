@@ -11,7 +11,7 @@ Step 1/1: Tell File Explorer to stop hiding file extensions (your user account o
   Run it? [y = yes, n = skip, q = quit]
 ```
 
-It works on Windows, macOS and Linux. It is one Python file with no extra packages.
+It works on Windows, macOS and Linux. It is plain Python with no extra packages.
 
 ## What it does for you
 
@@ -86,6 +86,40 @@ Each step has:
 | `backup` | no | Files or folders to copy before the step runs. The undo file copies them back. |
 | `shell` | no | `powershell`, `cmd` or `sh`. Default: `powershell` on Windows, `sh` elsewhere. |
 | `admin` | no | `true` to run with admin rights. |
+
+## Let Claude hand you commands it can't run
+
+Sometimes Claude can save files on your computer but isn't allowed to type into a terminal. The watcher closes that gap: Claude saves a steps file into an inbox folder, a terminal window pops up by itself, and you answer y/n as usual.
+
+Turn it on once (Windows). It starts hidden now and at every login:
+
+```bash
+python watcher.py --install
+```
+
+Turn it off:
+
+```bash
+python watcher.py --uninstall
+```
+
+On macOS or Linux, run `python watcher.py` and leave it open, or add it to your login items.
+
+Then tell Claude how to use it. Paste this into your Claude instructions (for example `~/.claude/CLAUDE.md` for Claude Code, or your profile instructions on claude.ai):
+
+```text
+When you need a command run on my computer and you can't run it yourself, save it as a
+step-runner steps file in ~/step-runner-inbox/ with a name ending in .steps.json.
+Format: {"title": "...", "steps": [{"description": "...", "command": "...", "undo": "..."}]}
+Use PowerShell commands on Windows. Use "backup": [paths] for anything that deletes or overwrites.
+A terminal will open and I will approve each step.
+```
+
+How it behaves:
+
+- It checks `~/step-runner-inbox` every 2 seconds for files ending in `.steps.json`.
+- Each file is moved into `~/step-runner-inbox/done/` before its terminal opens, so it's offered once. Its log and undo file land there too.
+- **Nothing runs without your `y`.** Any program that can write to that folder can put a prompt in front of you, so read every step before you approve it.
 
 ## Run the tests
 

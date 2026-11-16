@@ -1,5 +1,5 @@
 """Self-test for runner.py. Works on Windows, Linux and macOS: python test_runner.py"""
-import builtins, glob, json, os, shutil, subprocess, sys, tempfile
+import builtins, glob, json, os, shutil, subprocess, sys, tempfile, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RUNNER = os.path.join(HERE, "runner.py")
@@ -148,5 +148,23 @@ with tempfile.TemporaryDirectory() as d:
                 [{"description": "bad backup", "command": "echo hi", "backup": "not-a-list"}]):
         path = write(d, "bad.json", bad)
         assert subprocess.run([sys.executable, RUNNER, path], capture_output=True).returncode != 0, bad
+
+import watcher
+
+with tempfile.TemporaryDirectory() as d:
+    # 6. watcher: a finished *.steps.json is moved to done/ and offered once; other and half-written files are left
+    opened = []
+    path = write(d, "job.steps.json", [{"description": "x", "command": "x", "undo": "x"}])
+    write(d, "notes.json", [])
+    fresh = write(d, "fresh.steps.json", [])
+    old = time.time() - 5
+    for p in (path, os.path.join(d, "notes.json")):
+        os.utime(p, (old, old))
+    moved = watcher.check_inbox(d, opened.append)
+    assert len(moved) == 1 and opened == moved and moved[0].startswith(os.path.join(d, "done")), moved
+    assert not os.path.exists(path) and os.path.exists(moved[0]), "file must move into done/"
+    assert os.path.exists(fresh), "a file still being written must wait for the next pass"
+    assert watcher.check_inbox(d, opened.append) == [] and len(opened) == 1, "each file is offered only once"
+    print("ok: watcher")
 
 print("all runner checks passed")
