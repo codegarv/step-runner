@@ -165,6 +165,13 @@ with tempfile.TemporaryDirectory() as d:
     assert not os.path.exists(path) and os.path.exists(moved[0]), "file must move into done/"
     assert os.path.exists(fresh), "a file still being written must wait for the next pass"
     assert watcher.check_inbox(d, opened.append) == [] and len(opened) == 1, "each file is offered only once"
+
+    def no_terminal(_):
+        raise FileNotFoundError("x-terminal-emulator")
+
+    lost = write(d, "noterm.steps.json", [])
+    os.utime(lost, (old, old))
+    assert watcher.check_inbox(d, no_terminal) == [], "a terminal that can't open must not crash the watcher"
     print("ok: watcher")
 
 print("all runner checks passed")

@@ -11,7 +11,7 @@ Step 1/1: Tell File Explorer to stop hiding file extensions (your user account o
   Run it? [y = yes, n = skip, q = quit]
 ```
 
-It works on Windows, macOS and Linux. It is plain Python with no extra packages.
+The runner works on Windows, macOS and Linux. The watcher (see below) is fully supported only on Windows. It is plain Python with no extra packages.
 
 ## What it does for you
 
@@ -97,15 +97,17 @@ Turn it on once (Windows). It starts hidden now and at every login:
 python watcher.py --install
 ```
 
-Turn it off:
+Turn it off (stops the running watcher and removes it from login):
 
 ```bash
 python watcher.py --uninstall
 ```
 
-On macOS or Linux, run `python watcher.py` and leave it open, or add it to your login items.
+If you move the step-runner folder or reinstall Python, run `--install` again. The login entry remembers the old paths and otherwise fails without telling you.
 
-Then tell Claude how to use it. Paste this into your Claude instructions (for example `~/.claude/CLAUDE.md` for Claude Code, or your profile instructions on claude.ai):
+On macOS or Linux, run `python watcher.py` and leave that window open (Ctrl+C stops it). This has not been tested on a real Mac or Linux desktop. On Linux it needs `x-terminal-emulator` (Debian and Ubuntu have it). If no terminal opens, the watcher prints the command to run yourself.
+
+Then tell Claude how to use it. This only works where Claude can save files on your computer: Claude Code, or a Claude app with computer use (control of your screen). A claude.ai chat in a browser or the phone app can't reach your disk, so it can't use the inbox. Paste this into your Claude instructions (for example `~/.claude/CLAUDE.md` for Claude Code):
 
 ```text
 When you need a command run on my computer and you can't run it yourself, save it as a
@@ -121,6 +123,21 @@ How it behaves:
 - It checks `~/step-runner-inbox` every 2 seconds for files ending in `.steps.json`.
 - Each file is moved into `~/step-runner-inbox/done/` before its terminal opens, so it's offered once. Its log and undo file land there too.
 - **Nothing runs without your `y`.** Any program that can write to that folder can put a prompt in front of you, so read every step before you approve it.
+- The new terminal may open behind your other windows. Look for it in the taskbar.
+- The Notepad route (Claude typing the file into Notepad) has not been tested end to end yet.
+
+## What it can't do
+
+- **It can't work inside apps or web pages.** Commands can open a website, an app, a file or a folder, but can't click, type, or read what's on screen. Sending a message, filling a form, or changing a website setting (like your claude.ai profile) is up to you, or to Claude in Chrome, a browser extension that lets Claude click and type in pages. Claude in Chrome works only in Google Chrome, not Edge, Brave, Arc, Firefox or Safari.
+- **It can't change things stored online**, like account settings, except by opening the page for you.
+- **It can't fix a wrong command.** It runs exactly what's written. If a command has a typo or a wrong path, running it again fails again.
+- **It never runs anything unattended.** Every step waits for your `y`, so it needs you at the keyboard. This is on purpose.
+- **Undo has limits.**
+  - An undo is only as good as its `undo` command. Some steps can't really be undone (for example, "close the browser tab yourself").
+  - Restoring a backed-up folder copies the old files back but doesn't delete files added since.
+  - Backups are deleted after 7 days.
+- **Admin steps run in a hidden window.** Their output appears only after they finish. An admin command that waits for you to type something will hang with nothing on screen.
+- **No time limit.** A command that never finishes keeps the runner waiting until you close the window.
 
 ## Run the tests
 

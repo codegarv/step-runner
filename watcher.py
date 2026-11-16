@@ -66,9 +66,22 @@ def check_inbox(inbox, opener=open_terminal):
             os.replace(src, dst)
         except OSError:
             continue  # another watcher took it, or it's locked; try again next pass
-        opener(dst)
+        try:
+            opener(dst)
+        except OSError as e:  # e.g. no terminal program found; the file is already in done/, so say where
+            print(f"Couldn't open a terminal ({e}). Run it yourself: python runner.py \"{dst}\"")
+            continue
         moved.append(dst)
     return moved
+
+
+def stop_running():
+    """Windows: end any hidden watcher started from this file, so install/uninstall leave exactly one or none."""
+    me = os.path.abspath(__file__).replace("'", "''")
+    subprocess.run(["powershell", "-NoProfile", "-Command",
+                    "Get-CimInstance Win32_Process -Filter \"Name='pythonw.exe'\" | Where-Object { $_.CommandLine -like "
+                    f"('*' + [Management.Automation.WildcardPattern]::Escape('{me}') + '*') }} | "
+                    "Invoke-CimMethod -MethodName Terminate | Out-Null"])
 
 
 def install():
@@ -79,15 +92,18 @@ def install():
         sys.exit(f"Couldn't find {pythonw}")
     with open(STARTUP_FILE, "w", encoding="utf-8") as f:
         f.write(f'@start "" "{pythonw}" "{os.path.abspath(__file__)}"\n')
+    stop_running()  # installing twice must not leave two watchers
     subprocess.Popen([pythonw, os.path.abspath(__file__)])
     print(f"Watching {INBOX} now and at every login.\nTo stop: python watcher.py --uninstall")
 
 
 def uninstall():
+    if os.name != "nt":
+        sys.exit("--uninstall only supports Windows. On Mac/Linux, press Ctrl+C in the watcher's window.")
     if os.path.exists(STARTUP_FILE):
         os.remove(STARTUP_FILE)
-    print("It won't start at login any more. To stop the copy running now, sign out and back in, "
-          "or end 'pythonw.exe' in Task Manager.")
+    stop_running()
+    print("Stopped the watcher. It won't start at login any more.")
 
 
 def main():
