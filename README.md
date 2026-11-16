@@ -112,7 +112,8 @@ When you need a command run on my computer and you can't run it yourself, save i
 step-runner steps file in ~/step-runner-inbox/ with a name ending in .steps.json.
 Format: {"title": "...", "steps": [{"description": "...", "command": "...", "undo": "..."}]}
 Use PowerShell commands on Windows. Use "backup": [paths] for anything that deletes or overwrites.
-A terminal will open and I will approve each step.
+If you can't save files directly but can control apps, open Notepad, type the file, and save it
+there with "Save as type: All files". A terminal will open and I will approve each step.
 ```
 
 How it behaves:
